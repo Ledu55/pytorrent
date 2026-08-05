@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PyTorrent</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #0f1117;
+      color: #e1e4e8;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      color: #58a6ff;
+    }
+
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .card h2 {
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #8b949e;
+      margin-bottom: 1rem;
+    }
+
+    .upload-form {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .field label {
+      font-size: 0.8rem;
+      color: #8b949e;
+    }
+
+    input[type="file"], input[type="text"] {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      color: #e1e4e8;
+      padding: 0.45rem 0.75rem;
+      font-size: 0.9rem;
+    }
+
+    input[type="text"] { width: 260px; }
+
+    button {
+      background: #238636;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 0.5rem 1.1rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    button:hover { background: #2ea043; }
+    button:disabled { background: #3d4450; cursor: default; }
+
+    button.danger {
+      background: #b91c1c;
+      padding: 0.3rem 0.7rem;
+      font-size: 0.8rem;
+    }
+    button.danger:hover { background: #dc2626; }
+
+    #status-msg {
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+      min-height: 1.2em;
+      color: #58a6ff;
+    }
+    #status-msg.error { color: #f85149; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    th {
+      text-align: left;
+      padding: 0.5rem 0.75rem;
+      color: #8b949e;
+      font-weight: 600;
+      border-bottom: 1px solid #30363d;
+    }
+
+    td {
+      padding: 0.6rem 0.75rem;
+      border-bottom: 1px solid #21262d;
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    .progress-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .bar-bg {
+      flex: 1;
+      height: 6px;
+      background: #21262d;
+      border-radius: 3px;
+      overflow: hidden;
+      min-width: 80px;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background: #1f6feb;
+      border-radius: 3px;
+      transition: width 0.5s ease;
+    }
+
+    .bar-fill.done { background: #238636; }
+
+    .pct { font-size: 0.8rem; color: #8b949e; min-width: 3.5em; text-align: right; }
+
+    .state-badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: #21262d;
+      color: #8b949e;
+    }
+
+    .state-badge.downloading { background: #1f3a5f; color: #58a6ff; }
+    .state-badge.seeding { background: #1a3a23; color: #3fb950; }
+    .state-badge.finished { background: #1a3a23; color: #3fb950; }
+    .state-badge.error { background: #3a1a1a; color: #f85149; }
+    .state-badge.checking { background: #3a2a0a; color: #d29922; }
+
+    .empty-state {
+      text-align: center;
+      padding: 2rem;
+      color: #484f58;
+      font-size: 0.9rem;
+    }
+
+    .conn-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.78rem;
+      color: #8b949e;
+      float: right;
+    }
+
+    .conn-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #484f58;
+    }
+
+    .conn-dot.connected { background: #3fb950; }
+  </style>
+</head>
+<body>
+
+<h1>
+  PyTorrent
+  <span class="conn-indicator">
+    <span class="conn-dot" id="conn-dot"></span>
+    <span id="conn-label">connecting…</span>
+  </span>
+</h1>
+
+<div class="card">
+  <h2>Add Torrent</h2>
+  <form class="upload-form" id="upload-form">
+    <div class="field">
+      <label for="torrent-file">.torrent file</label>
+      <input type="file" id="torrent-file" accept=".torrent" required>
+    </div>
+    <div class="field">
+      <label for="save-path">Save path</label>
+      <input type="text" id="save-path" value="/tmp/downloads" placeholder="/tmp/downloads">
+    </div>
+    <button type="submit" id="add-btn">Add</button>
+  </form>
+  <div id="status-msg"></div>
+</div>
+
+<div class="card">
+  <h2>Torrents</h2>
+  <div id="empty-state" class="empty-state">No torrents yet. Add one above.</div>
+  <table id="torrent-table" style="display:none">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Size</th>
+        <th>Progress</th>
+        <th>Down</th>
+        <th>Up</th>
+        <th>Peers</th>
+        <th>State</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="torrent-body"></tbody>
+  </table>
+</div>
+
+<script>
+  const rows = {};       // info_hash -> <tr>
+  const statuses = {};   // info_hash -> last status object
+
+  // ── SSE ──────────────────────────────────────────────────────────────────
+  function connectSSE() {
+    const es = new EventSource('/api/events');
+
+    es.onopen = () => {
+      document.getElementById('conn-dot').className = 'conn-dot connected';
+      document.getElementById('conn-label').textContent = 'live';
+    };
+
+    es.onmessage = (e) => {
+      const updates = JSON.parse(e.data);
+      updates.forEach(applyUpdate);
+    };
+
+    es.onerror = () => {
+      document.getElementById('conn-dot').className = 'conn-dot';
+      document.getElementById('conn-label').textContent = 'reconnecting…';
+      // EventSource reconnects automatically; no manual retry needed
+    };
+  }
+
+  function applyUpdate(t) {
+    statuses[t.info_hash] = t;
+
+    if (!rows[t.info_hash]) {
+      const tr = document.createElement('tr');
+      rows[t.info_hash] = tr;
+      document.getElementById('torrent-body').appendChild(tr);
+      updateVisibility();
+    }
+
+    const pct = (t.progress * 100).toFixed(1);
+    const done = t.state === 'seeding' || t.state === 'finished';
+    rows[t.info_hash].innerHTML = `
+      <td title="${t.save_path}">${escHtml(t.name || '(loading…)')}</td>
+      <td>${fmtBytes(t.total_size)}</td>
+      <td>
+        <div class="progress-wrap">
+          <div class="bar-bg">
+            <div class="bar-fill${done ? ' done' : ''}" style="width:${pct}%"></div>
+          </div>
+          <span class="pct">${pct}%</span>
+        </div>
+      </td>
+      <td>${fmtRate(t.download_rate)}</td>
+      <td>${fmtRate(t.upload_rate)}</td>
+      <td>${t.num_peers}</td>
+      <td><span class="state-badge ${t.state.replace(' ', '-')}">${t.error || t.state}</span></td>
+      <td><button class="danger" onclick="removeTorrent('${t.info_hash}')">Remove</button></td>
+    `;
+  }
+
+  // ── Upload form ───────────────────────────────────────────────────────────
+  document.getElementById('upload-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fileInput = document.getElementById('torrent-file');
+    const savePath = document.getElementById('save-path').value.trim() || '/tmp/downloads';
+    const msgEl = document.getElementById('status-msg');
+    const btn = document.getElementById('add-btn');
+
+    if (!fileInput.files.length) return;
+
+    btn.disabled = true;
+    msgEl.className = '';
+    msgEl.textContent = 'Adding…';
+
+    const fd = new FormData();
+    // DO NOT set Content-Type manually — browser must set it to include the boundary
+    fd.append('file', fileInput.files[0]);
+    fd.append('save_path', savePath);
+
+    try {
+      const res = await fetch('/api/torrents', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (res.ok) {
+        msgEl.textContent = `Added (${data.info_hash.slice(0, 8)}…)`;
+        fileInput.value = '';
+      } else {
+        msgEl.className = 'error';
+        msgEl.textContent = `Error: ${data.detail}`;
+      }
+    } catch (err) {
+      msgEl.className = 'error';
+      msgEl.textContent = `Network error: ${err.message}`;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // ── Remove ────────────────────────────────────────────────────────────────
+  async function removeTorrent(hash) {
+    try {
+      await fetch(`/api/torrents/${hash}`, { method: 'DELETE' });
+    } catch (_) { /* ignore */ }
+    rows[hash]?.remove();
+    delete rows[hash];
+    delete statuses[hash];
+    updateVisibility();
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function updateVisibility() {
+    const hasRows = Object.keys(rows).length > 0;
+    document.getElementById('empty-state').style.display = hasRows ? 'none' : 'block';
+    document.getElementById('torrent-table').style.display = hasRows ? 'table' : 'none';
+  }
+
+  function fmtBytes(b) {
+    if (!b) return '—';
+    if (b >= 1e9) return (b / 1e9).toFixed(2) + ' GB';
+    if (b >= 1e6) return (b / 1e6).toFixed(1) + ' MB';
+    if (b >= 1e3) return (b / 1e3).toFixed(0) + ' KB';
+    return b + ' B';
+  }
+
+  function fmtRate(bps) {
+    if (!bps) return '—';
+    return fmtBytes(bps) + '/s';
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  connectSSE();
+</script>
+</body>
+</html>

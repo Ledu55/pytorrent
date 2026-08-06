@@ -205,7 +205,7 @@
     </div>
     <div class="field">
       <label for="save-path">Save path</label>
-      <input type="text" id="save-path" value="/tmp/downloads" placeholder="/tmp/downloads">
+      <input type="text" id="save-path" value="" placeholder="loading…">
     </div>
     <button type="submit" id="add-btn">Add</button>
   </form>
@@ -270,7 +270,7 @@
     const pct = (t.progress * 100).toFixed(1);
     const done = t.state === 'seeding' || t.state === 'finished';
     rows[t.info_hash].innerHTML = `
-      <td title="${t.save_path}">${escHtml(t.name || '(loading…)')}</td>
+      <td title="${escHtml(t.save_path)}">${escHtml(t.name || '(loading…)')}</td>
       <td>${fmtBytes(t.total_size)}</td>
       <td>
         <div class="progress-wrap">
@@ -283,7 +283,7 @@
       <td>${fmtRate(t.download_rate)}</td>
       <td>${fmtRate(t.upload_rate)}</td>
       <td>${t.num_peers}</td>
-      <td><span class="state-badge ${t.state.replace(' ', '-')}">${t.error || t.state}</span></td>
+      <td><span class="state-badge ${escHtml(t.state.replace(' ', '-'))}">${escHtml(t.error || t.state)}</span></td>
       <td><button class="danger" onclick="removeTorrent('${t.info_hash}')">Remove</button></td>
     `;
   }
@@ -292,7 +292,7 @@
   document.getElementById('upload-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const fileInput = document.getElementById('torrent-file');
-    const savePath = document.getElementById('save-path').value.trim() || '/tmp/downloads';
+    const savePath = document.getElementById('save-path').value.trim();
     const msgEl = document.getElementById('status-msg');
     const btn = document.getElementById('add-btn');
 
@@ -305,7 +305,8 @@
     const fd = new FormData();
     // DO NOT set Content-Type manually — browser must set it to include the boundary
     fd.append('file', fileInput.files[0]);
-    fd.append('save_path', savePath);
+    // Omitting save_path lets the server apply its own default
+    if (savePath) fd.append('save_path', savePath);
 
     try {
       const res = await fetch('/api/torrents', { method: 'POST', body: fd });
@@ -357,9 +358,23 @@
   }
 
   function escHtml(s) {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  async function loadConfig() {
+    const input = document.getElementById('save-path');
+    try {
+      const res = await fetch('/api/config');
+      const cfg = await res.json();
+      input.placeholder = cfg.download_root;
+      if (!input.value) input.value = cfg.download_root;
+    } catch {
+      input.placeholder = 'server default';
+    }
+  }
+
+  loadConfig();
   connectSSE();
 </script>
 </body>

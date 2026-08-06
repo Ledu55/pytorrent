@@ -1,14 +1,34 @@
 import asyncio
 import json
+import logging
+import os
 from dataclasses import asdict
+from pathlib import Path
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import StreamingResponse
 
 from torrent.manager import TorrentManager
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api")
 _manager: TorrentManager | None = None
+
+
+def _default_download_root() -> Path:
+    if os.name == "nt":
+        return Path.home() / "Downloads" / "pytorrent"
+    return Path("/tmp/downloads")
+
+
+# All save paths must live under this root (metadata files are small; this caps
+# the .torrent upload itself, not the downloaded payload)
+DOWNLOAD_ROOT = Path(
+    os.environ.get("PYTORRENT_DOWNLOAD_ROOT", str(_default_download_root()))
+).resolve()
+MAX_TORRENT_SIZE = 10 * 1024 * 1024
 
 
 def set_manager(manager: TorrentManager) -> None:
@@ -22,18 +42,33 @@ def _get_manager() -> TorrentManager:
     return _manager
 
 
+@router.get("/config")
+async def get_config():
+    return {"download_root": str(DOWNLOAD_ROOT)}
+
+
 @router.post("/torrents")
 async def add_torrent(
     file: UploadFile = File(...),
-    save_path: str = Form(default="/tmp/downloads"),
+    save_path: str = Form(default=str(DOWNLOAD_ROOT)),
 ):
     if not file.filename or not file.filename.endswith(".torrent"):
         raise HTTPException(status_code=400, detail="Only .torrent files are accepted")
-    data = await file.read()
+    resolved = Path(save_path).resolve()
+    if resolved != DOWNLOAD_ROOT and not resolved.is_relative_to(DOWNLOAD_ROOT):
+        raise HTTPException(
+            status_code=400,
+            detail=f"save_path must be inside {DOWNLOAD_ROOT}",
+        )
+    resolved.mkdir(parents=True, exist_ok=True)
+    data = await file.read(MAX_TORRENT_SIZE + 1)
+    if len(data) > MAX_TORRENT_SIZE:
+        raise HTTPException(status_code=413, detail="Torrent file too large")
     try:
-        info_hash = _get_manager().add_torrent(data, save_path)
+        info_hash = await run_in_threadpool(_get_manager().add_torrent, data, str(resolved))
     except Exception as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        logger.exception("Failed to add torrent %r", file.filename)
+        raise HTTPException(status_code=422, detail="Invalid or unloadable torrent file") from exc
     return {"info_hash": info_hash, "message": "Torrent added"}
 
 

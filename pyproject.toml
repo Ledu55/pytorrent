@@ -6,7 +6,5 @@ dependencies = [
     "fastapi>=0.111.0",
     "uvicorn[standard]>=0.29.0",
     "python-multipart>=0.0.9",
+    "libtorrent>=2.0.9",
 ]
-
-[project.scripts]
-pytorrent = "main:app"

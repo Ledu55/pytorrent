@@ -11,23 +11,26 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           # Pinned: libtorrent publishes win_amd64 wheels for cp310-cp313 only
           python-version: "3.12"
 
       - name: Install dependencies
+        # The app is run from the source tree, never installed -- it has no
+        # [build-system], so `pip install .` would hit setuptools flat-layout
+        # auto-discovery and fail on the api/torrent/static top-level dirs.
         run: |
-          python -m pip install --upgrade pip
-          pip install . pyinstaller
+          python -m pip install --upgrade pip uv
+          uv sync --frozen --python 3.12
 
       - name: Check libtorrent import
-        run: python -c "import libtorrent; print(libtorrent.version)"
+        run: uv run --no-sync python -c "import libtorrent; print(libtorrent.version)"
 
       - name: Build
-        run: pyinstaller pytorrent.spec --noconfirm
+        run: uv run --no-sync --with pyinstaller pyinstaller pytorrent.spec --noconfirm
 
       - name: Smoke test
         shell: pwsh

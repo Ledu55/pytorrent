@@ -27,6 +27,27 @@ class TorrentStatus:
     error: str
 
 
+def status_from_lt(s: lt.torrent_status) -> TorrentStatus:
+    """Map a libtorrent torrent_status snapshot to a TorrentStatus."""
+    state_str = _STATE_MAP.get(s.state, str(s.state))
+    total = s.total_wanted if s.total_wanted > 0 else 0
+    downloaded = int(total * s.progress)
+    error = s.errc.message() if s.errc.value() != 0 else ""
+    return TorrentStatus(
+        info_hash=str(s.info_hash),
+        name=s.name,
+        state=state_str,
+        progress=s.progress,
+        download_rate=s.download_rate,
+        upload_rate=s.upload_rate,
+        num_peers=s.num_peers,
+        total_size=total,
+        downloaded=downloaded,
+        save_path=s.save_path,
+        error=error,
+    )
+
+
 class TorrentHandle:
     def __init__(self, handle: lt.torrent_handle) -> None:
         self._handle = handle
@@ -36,24 +57,7 @@ class TorrentHandle:
         return str(self._handle.info_hash())
 
     def get_status(self) -> TorrentStatus:
-        s = self._handle.status()
-        state_str = _STATE_MAP.get(s.state, str(s.state))
-        total = s.total_wanted if s.total_wanted > 0 else 0
-        downloaded = int(total * s.progress)
-        error = s.errc.message() if s.errc.value() != 0 else ""
-        return TorrentStatus(
-            info_hash=str(s.info_hash),
-            name=s.name,
-            state=state_str,
-            progress=s.progress,
-            download_rate=s.download_rate,
-            upload_rate=s.upload_rate,
-            num_peers=s.num_peers,
-            total_size=total,
-            downloaded=downloaded,
-            save_path=s.save_path,
-            error=error,
-        )
+        return status_from_lt(self._handle.status())
 
     def is_complete(self) -> bool:
         s = self._handle.status()

@@ -26,7 +26,11 @@ manager = TorrentManager()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     set_manager(manager)
-    manager.start()
+    try:
+        manager.start()
+    except Exception:
+        logging.getLogger(__name__).exception("Failed to start torrent manager")
+        raise
     yield
     manager.stop()
 

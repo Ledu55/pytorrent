@@ -2,13 +2,11 @@ import libtorrent as lt
 
 
 class TorrentSession:
-    """Wraps lt.session with WSL2-safe settings."""
+    """Wraps lt.session with standard peer settings."""
 
     def __init__(self) -> None:
         settings = {
             "listen_interfaces": "0.0.0.0:6999",
-            "enable_incoming_tcp": False,
-            "enable_incoming_utp": False,
             "alert_mask": lt.alert.category_t.all_categories,
         }
         self._session = lt.session(settings)

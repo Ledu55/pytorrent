@@ -18,9 +18,7 @@ _manager: TorrentManager | None = None
 
 
 def _default_download_root() -> Path:
-    if os.name == "nt":
-        return Path.home() / "Downloads" / "pytorrent"
-    return Path("/tmp/downloads")
+    return Path.home() / "Downloads" / "pytorrent"
 
 
 # All save paths must live under this root (metadata files are small; this caps

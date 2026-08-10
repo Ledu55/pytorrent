@@ -88,7 +88,7 @@ jobs:
           echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
 
           # Parse current version from pyproject.toml
-          CURRENT_VERSION=$(grep -m 1 'version = ' pyproject.toml | sed -E 's/version = "(.*)"/\1/')
+          CURRENT_VERSION=$(grep -m 1 '^version = ' pyproject.toml | sed -E 's/^version = "(.*)"/\1/')
           echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
 
           # Get the version from the latest tag
@@ -139,7 +139,7 @@ jobs:
       - name: Check if version has changed
         id: check_version
         run: |
-          CURRENT_VERSION=$(grep -m 1 'version = ' pyproject.toml | sed -E 's/version = "(.*)"/\1/')
+          CURRENT_VERSION=$(grep -m 1 '^version = ' pyproject.toml | sed -E 's/^version = "(.*)"/\1/')
           NEW_VERSION="${{ steps.version.outputs.new_version }}"
 
           if [ "$CURRENT_VERSION" != "$NEW_VERSION" ]; then
@@ -152,8 +152,8 @@ jobs:
         if: steps.check_version.outputs.version_changed == 'true'
         run: |
           NEW_VERSION="${{ steps.version.outputs.new_version }}"
-          sed -i "s/version = \".*\"/version = \"$NEW_VERSION\"/" pyproject.toml
-          cat pyproject.toml | grep version
+          sed -i "/^\[project\]/,/^\[/ s/^version = \".*\"/version = \"$NEW_VERSION\"/" pyproject.toml
+          grep -n '^version = \|^target-version = ' pyproject.toml
 
       - name: Commit and push version bump
         if: steps.check_version.outputs.version_changed == 'true'

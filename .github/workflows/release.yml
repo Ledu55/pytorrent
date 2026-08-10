@@ -152,8 +152,8 @@ jobs:
         if: steps.check_version.outputs.version_changed == 'true'
         run: |
           NEW_VERSION="${{ steps.version.outputs.new_version }}"
-          sed -i "s/version = \".*\"/version = \"$NEW_VERSION\"/" pyproject.toml
-          cat pyproject.toml | grep version
+          sed -i "/^\[project\]/,/^\[/ s/version = \".*\"/version = \"$NEW_VERSION\"/" pyproject.toml
+          cat pyproject.toml | grep -A 1 "^\[project\]"
 
       - name: Commit and push version bump
         if: steps.check_version.outputs.version_changed == 'true'

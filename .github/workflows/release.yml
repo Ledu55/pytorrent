@@ -20,7 +20,60 @@ permissions:
   pull-requests: write
 
 jobs:
+  build-windows:
+    runs-on: windows-latest
+    outputs:
+      exe_path: ${{ steps.build.outputs.exe_path }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip uv
+          uv sync --frozen --python 3.12
+
+      - name: Build
+        id: build
+        run: |
+          uv run --no-sync --with pyinstaller pyinstaller pytorrent.spec --noconfirm
+          echo "exe_path=pytorrent-windows-x64.zip" >> $env:GITHUB_OUTPUT
+
+      - name: Smoke test
+        shell: pwsh
+        run: |
+          $env:PYTORRENT_NO_BROWSER = "1"
+          $proc = Start-Process -FilePath "dist\pytorrent\pytorrent.exe" -PassThru
+          $ok = $false
+          foreach ($i in 1..30) {
+            Start-Sleep -Seconds 1
+            try {
+              $r = Invoke-WebRequest "http://127.0.0.1:8765/api/torrents" -UseBasicParsing -TimeoutSec 2
+              if ($r.StatusCode -eq 200) { $ok = $true; break }
+            } catch { }
+          }
+          $index = $null
+          if ($ok) { $index = Invoke-WebRequest "http://127.0.0.1:8765/" -UseBasicParsing }
+          Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+          if (-not $ok) { Write-Error "API never became ready"; exit 1 }
+          if ($index.Content -notmatch "PyTorrent") { Write-Error "index.html not served"; exit 1 }
+
+      - name: Zip executable
+        shell: pwsh
+        run: Compress-Archive -Path dist/pytorrent -DestinationPath pytorrent-windows-x64.zip
+
+      - name: Upload Windows build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytorrent-windows-x64
+          path: pytorrent-windows-x64.zip
+          retention-days: 1
+
   release:
+    needs: build-windows
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -131,6 +184,13 @@ jobs:
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
+      - name: Download Windows build artifact
+        if: steps.check_version.outputs.version_changed == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: pytorrent-windows-x64
+          path: release-assets
+
       - name: Create GitHub Release
         if: steps.check_version.outputs.version_changed == 'true'
         uses: softprops/action-gh-release@v2
@@ -142,6 +202,7 @@ jobs:
             ${{ steps.release_notes.outputs.changelog }}
 
             **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ steps.version.outputs.latest_tag }}...${{ steps.version.outputs.new_tag }}
+          files: release-assets/*
           draft: false
           prerelease: false
 

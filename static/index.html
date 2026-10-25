@@ -3,379 +3,203 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
   <title>PyTorrent</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: system-ui, sans-serif;
-      background: #0f1117;
-      color: #e1e4e8;
-      min-height: 100vh;
-      padding: 2rem;
-    }
-
-    h1 {
-      font-size: 1.6rem;
-      font-weight: 700;
-      margin-bottom: 1.5rem;
-      color: #58a6ff;
-    }
-
-    .card {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 1.25rem 1.5rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .card h2 {
-      font-size: 0.95rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: #8b949e;
-      margin-bottom: 1rem;
-    }
-
-    .upload-form {
-      display: flex;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-      align-items: flex-end;
-    }
-
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 0.3rem;
-    }
-
-    .field label {
-      font-size: 0.8rem;
-      color: #8b949e;
-    }
-
-    input[type="file"], input[type="text"] {
-      background: #0d1117;
-      border: 1px solid #30363d;
-      border-radius: 6px;
-      color: #e1e4e8;
-      padding: 0.45rem 0.75rem;
-      font-size: 0.9rem;
-    }
-
-    input[type="text"] { width: 260px; }
-
-    button {
-      background: #238636;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 0.5rem 1.1rem;
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-
-    button:hover { background: #2ea043; }
-    button:disabled { background: #3d4450; cursor: default; }
-
-    button.danger {
-      background: #b91c1c;
-      padding: 0.3rem 0.7rem;
-      font-size: 0.8rem;
-    }
-    button.danger:hover { background: #dc2626; }
-
-    #status-msg {
-      margin-top: 0.75rem;
-      font-size: 0.85rem;
-      min-height: 1.2em;
-      color: #58a6ff;
-    }
-    #status-msg.error { color: #f85149; }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.88rem;
-    }
-
-    th {
-      text-align: left;
-      padding: 0.5rem 0.75rem;
-      color: #8b949e;
-      font-weight: 600;
-      border-bottom: 1px solid #30363d;
-    }
-
-    td {
-      padding: 0.6rem 0.75rem;
-      border-bottom: 1px solid #21262d;
-      vertical-align: middle;
-    }
-
-    tr:last-child td { border-bottom: none; }
-
-    .progress-wrap {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .bar-bg {
-      flex: 1;
-      height: 6px;
-      background: #21262d;
-      border-radius: 3px;
-      overflow: hidden;
-      min-width: 80px;
-    }
-
-    .bar-fill {
-      height: 100%;
-      background: #1f6feb;
-      border-radius: 3px;
-      transition: width 0.5s ease;
-    }
-
-    .bar-fill.done { background: #238636; }
-
-    .pct { font-size: 0.8rem; color: #8b949e; min-width: 3.5em; text-align: right; }
-
-    .state-badge {
-      display: inline-block;
-      padding: 0.15rem 0.5rem;
-      border-radius: 20px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      background: #21262d;
-      color: #8b949e;
-    }
-
-    .state-badge.downloading { background: #1f3a5f; color: #58a6ff; }
-    .state-badge.seeding { background: #1a3a23; color: #3fb950; }
-    .state-badge.finished { background: #1a3a23; color: #3fb950; }
-    .state-badge.error { background: #3a1a1a; color: #f85149; }
-    .state-badge.checking { background: #3a2a0a; color: #d29922; }
-
-    .empty-state {
-      text-align: center;
-      padding: 2rem;
-      color: #484f58;
-      font-size: 0.9rem;
-    }
-
-    .conn-indicator {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      font-size: 0.78rem;
-      color: #8b949e;
-      float: right;
-    }
-
-    .conn-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #484f58;
-    }
-
-    .conn-dot.connected { background: #3fb950; }
-  </style>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="app.css">
 </head>
 <body>
 
-<h1>
-  PyTorrent
-  <span class="conn-indicator">
-    <span class="conn-dot" id="conn-dot"></span>
-    <span id="conn-label">connecting…</span>
-  </span>
-</h1>
+<header class="topbar">
+  <div class="brand">
+    <img src="favicon.svg" alt="" width="26" height="26">
+    <span>PyTorrent</span>
+  </div>
+  <div class="search">
+    <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input type="search" id="search" placeholder="Search torrents  ( / )" aria-label="Search torrents">
+  </div>
+  <div class="toolbar">
+    <button class="btn primary" id="add-btn" title="Add torrent (N)">
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Add</span>
+    </button>
+    <button class="btn icon" id="resume-all-btn" title="Resume all" aria-label="Resume all">
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 5v14l11-7z"/></svg>
+    </button>
+    <button class="btn icon" id="pause-all-btn" title="Pause all" aria-label="Pause all">
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg>
+    </button>
+    <button class="btn icon" id="theme-btn" title="Toggle theme" aria-label="Toggle theme">
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/></svg>
+    </button>
+    <button class="btn icon" id="settings-btn" title="Settings" aria-label="Settings">
+      <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+  </div>
+</header>
 
-<div class="card">
-  <h2>Add Torrent</h2>
-  <form class="upload-form" id="upload-form">
-    <div class="field">
-      <label for="torrent-file">.torrent file</label>
-      <input type="file" id="torrent-file" accept=".torrent" required>
+<div class="layout">
+  <nav class="sidebar" aria-label="Filters">
+    <ul id="filters">
+      <li><button data-filter="all" class="active">All <span class="count"></span></button></li>
+      <li><button data-filter="downloading">Downloading <span class="count"></span></button></li>
+      <li><button data-filter="seeding">Seeding <span class="count"></span></button></li>
+      <li><button data-filter="completed">Completed <span class="count"></span></button></li>
+      <li><button data-filter="paused">Paused <span class="count"></span></button></li>
+      <li><button data-filter="error">Errors <span class="count"></span></button></li>
+    </ul>
+  </nav>
+
+  <main class="main">
+    <div class="table-wrap">
+      <table id="torrent-table" aria-label="Torrents">
+        <thead>
+          <tr>
+            <th data-sort="name" class="col-name">Name</th>
+            <th data-sort="total_size" class="num">Size</th>
+            <th data-sort="progress" class="col-progress">Progress</th>
+            <th data-sort="state">Status</th>
+            <th data-sort="download_rate" class="num">Down</th>
+            <th data-sort="upload_rate" class="num">Up</th>
+            <th data-sort="eta" class="num">ETA</th>
+            <th data-sort="num_peers" class="num">Seeds / Peers</th>
+            <th data-sort="ratio" class="num">Ratio</th>
+            <th data-sort="added_time" class="num">Added</th>
+            <th><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody id="torrent-body"></tbody>
+      </table>
+
+      <div id="empty-state" class="empty-state">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+        <h2>No torrents yet</h2>
+        <p>Drop a <code>.torrent</code> file anywhere on this page, paste a magnet link, or click <strong>Add</strong>.</p>
+        <button class="btn primary" id="empty-add-btn">Add a torrent</button>
+      </div>
+      <div id="no-match" class="empty-state" hidden>
+        <p>No torrents match this filter.</p>
+      </div>
     </div>
-    <div class="field">
-      <label for="save-path">Save path</label>
-      <input type="text" id="save-path" value="" placeholder="loading…">
-    </div>
-    <button type="submit" id="add-btn">Add</button>
-  </form>
-  <div id="status-msg"></div>
-</div>
 
-<div class="card">
-  <h2>Torrents</h2>
-  <div id="empty-state" class="empty-state">No torrents yet. Add one above.</div>
-  <table id="torrent-table" style="display:none">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Size</th>
-        <th>Progress</th>
-        <th>Down</th>
-        <th>Up</th>
-        <th>Peers</th>
-        <th>State</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody id="torrent-body"></tbody>
-  </table>
-</div>
-
-<script>
-  const rows = {};       // info_hash -> <tr>
-  const statuses = {};   // info_hash -> last status object
-
-  // ── SSE ──────────────────────────────────────────────────────────────────
-  function connectSSE() {
-    const es = new EventSource('/api/events');
-
-    es.onopen = () => {
-      document.getElementById('conn-dot').className = 'conn-dot connected';
-      document.getElementById('conn-label').textContent = 'live';
-    };
-
-    es.onmessage = (e) => {
-      const updates = JSON.parse(e.data);
-      updates.forEach(applyUpdate);
-    };
-
-    es.onerror = () => {
-      document.getElementById('conn-dot').className = 'conn-dot';
-      document.getElementById('conn-label').textContent = 'reconnecting…';
-      // EventSource reconnects automatically; no manual retry needed
-    };
-  }
-
-  function applyUpdate(t) {
-    statuses[t.info_hash] = t;
-
-    if (!rows[t.info_hash]) {
-      const tr = document.createElement('tr');
-      rows[t.info_hash] = tr;
-      document.getElementById('torrent-body').appendChild(tr);
-      updateVisibility();
-    }
-
-    const pct = (t.progress * 100).toFixed(1);
-    const done = t.state === 'seeding' || t.state === 'finished';
-    rows[t.info_hash].innerHTML = `
-      <td title="${escHtml(t.save_path)}">${escHtml(t.name || '(loading…)')}</td>
-      <td>${fmtBytes(t.total_size)}</td>
-      <td>
-        <div class="progress-wrap">
-          <div class="bar-bg">
-            <div class="bar-fill${done ? ' done' : ''}" style="width:${pct}%"></div>
-          </div>
-          <span class="pct">${pct}%</span>
+    <section id="details" class="details" hidden aria-label="Torrent details">
+      <div class="details-head">
+        <div class="tabs" role="tablist">
+          <button role="tab" data-tab="general" aria-selected="true">General</button>
+          <button role="tab" data-tab="files" aria-selected="false">Files</button>
+          <button role="tab" data-tab="peers" aria-selected="false">Peers</button>
+          <button role="tab" data-tab="trackers" aria-selected="false">Trackers</button>
         </div>
-      </td>
-      <td>${fmtRate(t.download_rate)}</td>
-      <td>${fmtRate(t.upload_rate)}</td>
-      <td>${t.num_peers}</td>
-      <td><span class="state-badge ${escHtml(t.state.replace(' ', '-'))}">${escHtml(t.error || t.state)}</span></td>
-      <td><button class="danger" onclick="removeTorrent('${t.info_hash}')">Remove</button></td>
-    `;
-  }
+        <button class="btn icon" id="details-close" aria-label="Close details">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <div class="details-body" id="details-body" role="tabpanel"></div>
+    </section>
+  </main>
+</div>
 
-  // ── Upload form ───────────────────────────────────────────────────────────
-  document.getElementById('upload-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const fileInput = document.getElementById('torrent-file');
-    const savePath = document.getElementById('save-path').value.trim();
-    const msgEl = document.getElementById('status-msg');
-    const btn = document.getElementById('add-btn');
+<footer class="statusbar" aria-live="off">
+  <span class="conn"><span class="dot" id="conn-dot"></span><span id="conn-label">Connecting…</span></span>
+  <span id="sb-down" title="Total download speed">↓ —</span>
+  <span id="sb-up" title="Total upload speed">↑ —</span>
+  <span id="sb-free" title="Free space in download folder"></span>
+  <span id="sb-net" title="Network"></span>
+</footer>
 
-    if (!fileInput.files.length) return;
+<div id="drop-overlay" class="drop-overlay" hidden>
+  <div>Drop .torrent files or a magnet link to add</div>
+</div>
 
-    btn.disabled = true;
-    msgEl.className = '';
-    msgEl.textContent = 'Adding…';
+<div id="toasts" class="toasts" aria-live="polite"></div>
 
-    const fd = new FormData();
-    // DO NOT set Content-Type manually — browser must set it to include the boundary
-    fd.append('file', fileInput.files[0]);
-    // Omitting save_path lets the server apply its own default
-    if (savePath) fd.append('save_path', savePath);
+<!-- Add torrent -->
+<dialog id="add-dialog" aria-labelledby="add-title">
+  <form method="dialog" id="add-form">
+    <h2 id="add-title">Add torrents</h2>
+    <label class="dropzone" id="add-dropzone">
+      <input type="file" id="add-files" accept=".torrent" multiple>
+      <span id="add-files-label">Choose <strong>.torrent</strong> files or drop them here</span>
+    </label>
+    <label class="field">
+      <span>Magnet links <small>(one per line)</small></span>
+      <textarea id="add-magnets" rows="3" placeholder="magnet:?xt=urn:btih:…" spellcheck="false"></textarea>
+    </label>
+    <details class="advanced">
+      <summary>Advanced</summary>
+      <label class="field">
+        <span>Subfolder <small>(inside <span id="add-root"></span>)</small></span>
+        <input type="text" id="add-subfolder" placeholder="e.g. movies">
+      </label>
+    </details>
+    <div class="dialog-actions">
+      <button type="button" class="btn" data-close>Cancel</button>
+      <button type="submit" class="btn primary" id="add-submit">Add</button>
+    </div>
+  </form>
+</dialog>
 
-    try {
-      const res = await fetch('/api/torrents', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (res.ok) {
-        msgEl.textContent = `Added (${data.info_hash.slice(0, 8)}…)`;
-        fileInput.value = '';
-      } else {
-        msgEl.className = 'error';
-        msgEl.textContent = `Error: ${data.detail}`;
-      }
-    } catch (err) {
-      msgEl.className = 'error';
-      msgEl.textContent = `Network error: ${err.message}`;
-    } finally {
-      btn.disabled = false;
-    }
-  });
+<!-- Remove torrent -->
+<dialog id="remove-dialog" aria-labelledby="remove-title">
+  <form method="dialog" id="remove-form">
+    <h2 id="remove-title">Remove torrent?</h2>
+    <p id="remove-name" class="muted"></p>
+    <label class="check">
+      <input type="checkbox" id="remove-files">
+      <span>Also delete downloaded files from disk</span>
+    </label>
+    <div class="dialog-actions">
+      <button type="button" class="btn" data-close>Cancel</button>
+      <button type="submit" class="btn danger" id="remove-submit">Remove</button>
+    </div>
+  </form>
+</dialog>
 
-  // ── Remove ────────────────────────────────────────────────────────────────
-  async function removeTorrent(hash) {
-    try {
-      await fetch(`/api/torrents/${hash}`, { method: 'DELETE' });
-    } catch (_) { /* ignore */ }
-    rows[hash]?.remove();
-    delete rows[hash];
-    delete statuses[hash];
-    updateVisibility();
-  }
+<!-- Settings -->
+<dialog id="settings-dialog" aria-labelledby="settings-title" class="wide">
+  <form method="dialog" id="settings-form">
+    <h2 id="settings-title">Settings</h2>
+    <fieldset>
+      <legend>Downloads</legend>
+      <label class="field">
+        <span>Download folder</span>
+        <input type="text" name="download_root" required>
+      </label>
+    </fieldset>
+    <fieldset class="grid2">
+      <legend>Speed <small>(KiB/s, 0 = unlimited)</small></legend>
+      <label class="field"><span>Download limit</span><input type="number" name="download_limit_kbps" min="0"></label>
+      <label class="field"><span>Upload limit</span><input type="number" name="upload_limit_kbps" min="0"></label>
+    </fieldset>
+    <fieldset class="grid2">
+      <legend>Queue</legend>
+      <label class="field"><span>Active downloads</span><input type="number" name="active_downloads" min="1"></label>
+      <label class="field"><span>Active seeds</span><input type="number" name="active_seeds" min="1"></label>
+      <label class="field"><span>Stop seeding at ratio <small>(0 = never)</small></span><input type="number" name="seed_ratio_limit" min="0" step="0.1"></label>
+    </fieldset>
+    <fieldset class="grid2">
+      <legend>Network</legend>
+      <label class="field"><span>Listen port</span><input type="number" name="listen_port" min="1" max="65535"></label>
+      <label class="check"><input type="checkbox" name="enable_upnp"><span>Open the port on my router automatically (UPnP / NAT-PMP)</span></label>
+    </fieldset>
+    <details class="advanced">
+      <summary>Keyboard shortcuts</summary>
+      <dl class="shortcuts">
+        <dt><kbd>N</kbd></dt><dd>Add torrent</dd>
+        <dt><kbd>/</kbd></dt><dd>Search</dd>
+        <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>Move selection</dd>
+        <dt><kbd>Space</kbd></dt><dd>Pause / resume selected</dd>
+        <dt><kbd>Del</kbd></dt><dd>Remove selected</dd>
+        <dt><kbd>Esc</kbd></dt><dd>Close panel or dialog</dd>
+      </dl>
+    </details>
+    <div class="dialog-actions">
+      <button type="button" class="btn" data-close>Cancel</button>
+      <button type="submit" class="btn primary">Save</button>
+    </div>
+  </form>
+</dialog>
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-  function updateVisibility() {
-    const hasRows = Object.keys(rows).length > 0;
-    document.getElementById('empty-state').style.display = hasRows ? 'none' : 'block';
-    document.getElementById('torrent-table').style.display = hasRows ? 'table' : 'none';
-  }
-
-  function fmtBytes(b) {
-    if (!b) return '—';
-    if (b >= 1e9) return (b / 1e9).toFixed(2) + ' GB';
-    if (b >= 1e6) return (b / 1e6).toFixed(1) + ' MB';
-    if (b >= 1e3) return (b / 1e3).toFixed(0) + ' KB';
-    return b + ' B';
-  }
-
-  function fmtRate(bps) {
-    if (!bps) return '—';
-    return fmtBytes(bps) + '/s';
-  }
-
-  function escHtml(s) {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  }
-
-  async function loadConfig() {
-    const input = document.getElementById('save-path');
-    try {
-      const res = await fetch('/api/config');
-      const cfg = await res.json();
-      input.placeholder = cfg.download_root;
-      if (!input.value) input.value = cfg.download_root;
-    } catch {
-      input.placeholder = 'server default';
-    }
-  }
-
-  loadConfig();
-  connectSSE();
-</script>
+<script src="app.js"></script>
 </body>
 </html>

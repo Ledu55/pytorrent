@@ -1,8 +1,0 @@
-Metadata-Version: 2.4
-Name: pytorrent
-Version: 0.1.0
-Requires-Python: >=3.11
-Requires-Dist: fastapi>=0.111.0
-Requires-Dist: uvicorn[standard]>=0.29.0
-Requires-Dist: python-multipart>=0.0.9
-Requires-Dist: libtorrent>=2.0.9

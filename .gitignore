@@ -5,3 +5,4 @@ build/
 dist/
 # Stray download dirs created from Windows-style save paths (e.g. "E:\...")
 E:*/
+*.egg-info/

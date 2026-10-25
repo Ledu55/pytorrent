@@ -40,6 +40,13 @@ def _open_browser_when_ready(server: uvicorn.Server, url: str) -> None:
 def main() -> None:
     from main import app
 
+    if HOST not in ("127.0.0.1", "localhost", "::1") and not os.environ.get("PYTORRENT_PASSWORD"):
+        print(
+            f"WARNING: listening on {HOST} without PYTORRENT_PASSWORD set - anyone on "
+            "your network can control PyTorrent.",
+            flush=True,
+        )
+
     port = _pick_port(HOST, PORT)
     url = f"http://{HOST}:{port}/"
     server = uvicorn.Server(uvicorn.Config(app, host=HOST, port=port, log_level="info"))

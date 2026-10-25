@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=69.0"]
+requires = ["setuptools>=77.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -13,6 +13,13 @@ dependencies = [
     "libtorrent>=2.0.9",
 ]
 
+description = "A lightweight BitTorrent client with a web UI, built on libtorrent"
+readme = "README.md"
+license = "MIT"
+
+[project.scripts]
+pytorrent = "launcher:main"
+
 [dependency-groups]
 dev = [
     "pytest>=7.4.0",
@@ -23,6 +30,7 @@ dev = [
 
 [tool.setuptools]
 packages = ["api", "torrent"]
+py-modules = ["launcher", "main"]
 
 [tool.ruff]
 line-length = 100

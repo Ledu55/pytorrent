@@ -1,6 +1,7 @@
 """Tests for torrent/manager.py."""
 
 import asyncio
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 import pytest
 from torrent.manager import TorrentManager
@@ -15,7 +16,7 @@ def test_add_torrent():
     # Mock the session and handle
     mock_handle = MagicMock()
     mock_handle.info_hash.return_value = "test_hash_123"
-    mock_handle.status.return_value = MagicMock(
+    mock_handle.status.return_value = SimpleNamespace(
         info_hash="test_hash_123",
         name="test.torrent",
         state=lt.torrent_status.downloading,
@@ -25,7 +26,7 @@ def test_add_torrent():
         upload_rate=0,
         num_peers=0,
         save_path="/tmp/test",
-        errc=MagicMock(value=lambda: 0, message=lambda: ""),
+        errc=SimpleNamespace(value=lambda: 0, message=lambda: ""),
     )
 
     with patch("torrent.manager.lt.torrent_info") as mock_torrent_info:
@@ -45,7 +46,7 @@ def test_remove_torrent_success():
     # Setup a torrent
     mock_handle = MagicMock()
     mock_handle.info_hash.return_value = "test_hash_123"
-    mock_handle.status.return_value = MagicMock(
+    mock_handle.status.return_value = SimpleNamespace(
         info_hash="test_hash_123",
         name="test.torrent",
         state=lt.torrent_status.downloading,
@@ -55,7 +56,7 @@ def test_remove_torrent_success():
         upload_rate=0,
         num_peers=0,
         save_path="/tmp/test",
-        errc=MagicMock(value=lambda: 0, message=lambda: ""),
+        errc=SimpleNamespace(value=lambda: 0, message=lambda: ""),
     )
 
     with patch("torrent.manager.lt.torrent_info") as mock_torrent_info:
@@ -162,3 +163,73 @@ async def test_broadcast_backpressure():
     # frame2 should be status2, frame3 should be status3
     assert frame2[0]["info_hash"] == "h2"
     assert frame3[0]["info_hash"] == "h3"
+
+
+def _make_torrent(tmp_path):
+    """Build a real single-file .torrent and return (bytes, payload_dir)."""
+    payload_dir = tmp_path / "payload"
+    payload_dir.mkdir()
+    (payload_dir / "hello.txt").write_bytes(b"hello world" * 1000)
+    fs = lt.file_storage()
+    lt.add_files(fs, str(payload_dir / "hello.txt"))
+    ct = lt.create_torrent(fs)
+    lt.set_piece_hashes(ct, str(payload_dir))
+    return lt.bencode(ct.generate()), payload_dir
+
+
+def test_resume_data_roundtrip(tmp_path):
+    """Torrents saved on stop come back in a fresh manager."""
+    resume = tmp_path / "resume"
+    data, payload_dir = _make_torrent(tmp_path)
+
+    first = TorrentManager(resume_dir=resume)
+    info_hash = first.add_torrent(data, str(payload_dir))
+    first.pause(info_hash)
+    first._save_all_resume_data()
+    assert (resume / f"{info_hash}.fastresume").exists()
+
+    second = TorrentManager(resume_dir=resume)
+    second._load_resume_data()
+    assert info_hash in second._handles
+
+    second.remove_torrent(info_hash)
+    assert not (resume / f"{info_hash}.fastresume").exists()
+
+
+def test_duplicate_torrent_rejected(tmp_path):
+    from torrent.manager import DuplicateTorrentError
+
+    data, payload_dir = _make_torrent(tmp_path)
+    manager = TorrentManager()
+    manager.add_torrent(data, str(payload_dir))
+    with pytest.raises(DuplicateTorrentError):
+        manager.add_torrent(data, str(payload_dir))
+
+
+def test_pause_resume_state(tmp_path):
+    data, payload_dir = _make_torrent(tmp_path)
+    manager = TorrentManager()
+    info_hash = manager.add_torrent(data, str(payload_dir))
+
+    manager.pause(info_hash)
+    assert manager._handles[info_hash].get_status().state == "paused"
+    manager.resume(info_hash)
+    assert manager._handles[info_hash].get_status().state != "paused"
+
+
+def test_files_and_priorities(tmp_path):
+    data, payload_dir = _make_torrent(tmp_path)
+    manager = TorrentManager()
+    info_hash = manager.add_torrent(data, str(payload_dir))
+
+    files = manager.details(info_hash)["files"]
+    assert len(files) == 1 and files[0]["path"].endswith("hello.txt")
+
+    manager.set_file_priorities(info_hash, {0: 0})
+    # libtorrent applies priorities asynchronously on its own thread
+    import time
+    for _ in range(50):
+        if manager.details(info_hash)["files"][0]["priority"] == 0:
+            break
+        time.sleep(0.02)
+    assert manager.details(info_hash)["files"][0]["priority"] == 0
